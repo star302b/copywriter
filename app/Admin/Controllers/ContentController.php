@@ -8,6 +8,7 @@ use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Show;
+use Illuminate\Database\Eloquent\Builder;
 
 class ContentController extends AdminController
 {
@@ -89,7 +90,7 @@ class ContentController extends AdminController
         $form = new Form(new Content());
 
         $form->textarea('title', __('Title'));
-        $form->textarea('content', __('Content'));
+        $form->summernote('content', __('Content'));
         $form->datetime('due_date', __('Due date'))->default(date('Y-m-d H:i:s'));
         $form->number('word_count', __('Word count'));
         $form->number('require_words', __('Require words'));
@@ -100,8 +101,19 @@ class ContentController extends AdminController
         $form->textarea('site_url', __('Site url'));
         $form->switch('copy_scape_check', __('Copy scape check'));
         $form->switch('approved', __('Approved'));
-        $form->select('writer_id', __('Writer id'))->options(Administrator::all()->pluck('name','id'));
-        $form->select('editor_id', __('Editor id'))->options(Administrator::all()->pluck('name','id'));
+        $form->select('editor_id', __('Editor'))->options(
+            Administrator::whereHas('roles', function (Builder $query) {
+                $query->where('slug', '=', 'editor');
+            })->get()->pluck('name','id')
+        );
+        $form->select('writer_id', __('Writer'))->options(
+            Administrator::whereHas('roles', function (Builder $query) {
+                $query->where('slug', '=', 'writer');
+            })->get()->pluck('name','id')
+        );
+        $form->hasMany('revisions', 'Revisions', function (Form\NestedForm $form) {
+            $form->textarea('notes')->rows('4');
+        });
 
         return $form;
     }
